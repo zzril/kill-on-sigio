@@ -35,7 +35,7 @@ static int cleanup(void) {
 
 	int status = 0;
 
-	if(g_pid_child > 0) {
+	if(g_pid_child >= 0) {
 		status |= kill_child_report_errors(SIGKILL);
 	}
 
@@ -100,14 +100,14 @@ int main(int argc, char** argv) {
 		clean_exit(EXIT_FAILURE);
 	}
 
-	int oldflags = fcntl(g_fd_fifo, F_GETFL);
-	if(oldflags < 0) { // if highest bit is used in the bitmask, the whole api is messed up
-		perror("fcntl(F_GETFL)");
+	if(fcntl(g_fd_fifo, F_SETOWN, getpid()) < 0) {
+		perror("fcntl(F_SETOWN)");
 		clean_exit(EXIT_FAILURE);
 	}
 
-	if(fcntl(g_fd_fifo, F_SETOWN, getpid()) < 0) {
-		perror("fcntl(F_SETOWN)");
+	int oldflags = fcntl(g_fd_fifo, F_GETFL);
+	if(oldflags < 0) { // if highest bit is used in the bitmask, the whole api is messed up
+		perror("fcntl(F_GETFL)");
 		clean_exit(EXIT_FAILURE);
 	}
 
@@ -116,13 +116,17 @@ int main(int argc, char** argv) {
 		clean_exit(EXIT_FAILURE);
 	}
 
-	if(wait(NULL) < 0 && errno != EINTR) {
+	if(wait(NULL) >= 0 ) { // stopfile wasn't written to
+		g_pid_child = -1;
+		clean_exit(EXIT_SUCCESS);
+	}
+
+	if(errno != EINTR) {
 		perror("wait");
 		clean_exit(EXIT_FAILURE);
 	}
 
-	g_pid_child = -1;
-
+	g_pid_child = -1; // child was sent the signal
 	clean_exit(EXIT_SUCCESS);
 }
 
