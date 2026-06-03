@@ -12,6 +12,6 @@ Example
 mkfifo stopfile
 make
 ./bin/kill-on-sigio stopfile ffplay -nodisp -autoexit ~/Music/YouTube/dQw4w9WgXcQ.m4a 2> /dev/null &
-printf '' > stopfile
+echo -n > stopfile
 ```
 
